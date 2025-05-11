@@ -1,11 +1,22 @@
+Das hier ist der Code für die LifeOrganisationStation, kurz LOS.
+Das LOS ist ein Projekt welches im Informatikunterricht in Jahrgang 11 entwickelt wurde. 
+Es basiert auf dem JC4827W543 Touch-LCD-Display, welches einen integrierten ESP32-S3 Chip hat. Mit der LVGL Library läuft darauf eine Prototyp Version. 
 
-This directory is intended for PlatformIO Test Runner and project tests.
+Die Idee der Station ist es, Organisation und Überblick minimalistisch und schnell zu ermöglichen. 
 
-Unit Testing is a software testing method by which individual units of
-source code, sets of one or more MCU program modules together with associated
-control data, usage procedures, and operating procedures, are tested to
-determine whether they are fit for use. Unit testing finds problems early
-in the development cycle.
+Falls überlegt wird, das Projekt nachzubauen und weiter zu entwickeln, werden zum anwenden des Codes zusätzlich zu den in platform.ini Datei genannten Librarys noch folgende Librarys benötigt:
+- audio-tools (wird zum abspielen von Audio benötigt)
+- Dev_Device_Pins (beinhaltet alle Pindeklerationen des Displays)
+- libhelix (zur umwandlung von mp3 Dateien)
+- lvgl (für die UI)
 
-More information about PlatformIO Unit Testing:
-- https://docs.platformio.org/en/latest/advanced/unit-testing/index.html
+Außerdem emphele ich euch die entwicklung mit Platform.io da die Perfomance im Vergleich mit der Arduino IDE sehr viel schneller ist, und ihr die Funktionen einer normalen Programmierumgebung habt.
+
+Weitere Ideen zur Entwicklung sind(teilweise unrealistisch):
+- Speichern von Presets
+- WebUI zum einstellen von Weckern, Timern, To-Do Listen
+- ToDo Liste und Erinnerungen
+- Nicht sicher, wegen API Problemen, evtl. To-Dos/Erinnerungen von Google Task/Google Kalender
+- Integration mit ESP Home
+- YouTube/Twitch/etc. Counter
+- Mehrere Pages zum swipen

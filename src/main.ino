@@ -32,9 +32,6 @@ int16_t w, h, text_size;
 int currentMin;
 
 
-// WLAN-Zugangsdaten
-const char* ssid = "FRITZ!Box 7560 MA";
-const char* password = "17142637522306500849";
 
 #define TOUCH_SDA 8
 #define TOUCH_SCL 4

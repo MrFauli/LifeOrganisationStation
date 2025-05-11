@@ -1,0 +1,5 @@
+#pragma once
+
+// WLAN-Zugangsdaten
+#define ssid  "WLAN"
+#define password  "password"

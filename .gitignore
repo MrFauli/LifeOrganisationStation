@@ -1,5 +1,5 @@
 .pio
 .vscode/
-.src/passwort.h
+src/passwort.h
 build/
-.src/test/
+src/test/
