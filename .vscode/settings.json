@@ -1,0 +1,6 @@
+{
+    "cmake.sourceDirectory": "C:/Users/gianl/Documents/PlatformIO/Projects/LOS/lib/audio-tools",
+    "files.associations": {
+        "chrono": "cpp"
+    }
+}

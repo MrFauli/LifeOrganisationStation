@@ -1,0 +1,108 @@
+void loop(){
+
+  lv_task_handler(); /* let the GUI do its work */
+
+  delay(5);
+  player.updatePlaying();
+  wecker.checkTimer();
+  int screenW = gfx->width();
+  int screenH = gfx->height();
+  struct tm timeinfo;
+  getLocalTime(&timeinfo);
+  int currentMin = timeinfo.tm_min;
+  if(millis() - lastWheater >= wheaterInterval){
+    wetter.getWeatherData();
+    Serial.println("Temperatur");
+    Serial.println(Temperatur);
+    gfx->setCursor(350,200);
+    gfx->print(String(Temperatur)); 
+    }
+  
+
+  if(digitalRead(button) == LOW ){
+    player.stopSound();
+  }
+  // Zeigt WiFi Verbindung
+  gfx->setCursor(350,20);
+  if(WL_CONNECTED == WiFi.status()){
+      gfx->print("Verbunden");
+      uhrGesetzt = true;
+      configTzTime("CET-1CEST,M3.5.0/2,M10.5.0/3", "pool.ntp.org");
+      struct tm timeinfo;
+  }
+  else{
+      gfx->fillRect(350,20, 100,20,BLACK);
+      unsigned long now = millis();
+      int currentMin = 62;
+      if(now - lastAttempt> 10000){
+        Serial.println("Try to reconnect...");
+        WiFi.disconnect();  // alte Verbindung sicher trennen
+        WiFi.reconnect();   // neue starten
+        lastAttempt = now;
+        
+      }  
+       
+  }
+  // Draw Button for Action
+  int startBtn = 100;
+  int startX =(screenW - startBtn)/ 2;
+  int startY = (screenH - startBtn) / 2;
+  gfx->fillCircle(startX + startBtn / 2, startY + startBtn / 2, startBtn / 2, RGB565_DARKGREEN);
+  touchController.read();
+  if(touchController.touches > 0){
+
+    Serial.println("TouchBefehl");
+    int tx = touchController.points[0].x;
+    int ty = touchController.points[0].y;
+    Serial.println(tx);
+    Serial.println(ty);
+    if(tx >= startX && tx <=startX + startBtn && ty >= startY && startY + startBtn){
+      Serial.println("Click");
+      gfx->setCursor(100,startY+ startBtn + 20);
+      if(funktion == false){
+        wecker.startTimer(1);
+        int16_t x1, y1;
+        uint16_t textW, textH;
+        gfx->getTextBounds("Click", 0, startY+ startBtn + 20, &x1, &y1, &textW, &textH);
+        // player.playMP3("/Monte-Wecker.mp3");
+        gfx->print("Click");
+        // // funktion=true;
+      }
+      // else{
+
+      //   gfx->fillRect(100,startY+ startBtn + 20,200,20,BLACK);
+      //   funktion = false;
+      // }
+      while (touchController.touches > 0)
+      {
+        Serial.println("Warten...");
+        touchController.read();
+        delay(50);
+      }
+      delay(1000);
+    
+  }
+}
+// Zeigt Uhrzeit
+if(currentMin != lastMin){
+  char timeStr[10]; 
+  
+  if(uhrGesetzt){
+  lastMin = currentMin;
+  gfx->setCursor(10,20);
+  gfx->setTextColor(RGB565_WHITE);
+  gfx->fillRect(10,20, 100,20,BLACK);
+  // gfx->print(&timeinfo, "Uhrzeit: %H:%M:%S - %d.%m.%Y");
+ 
+  strftime(timeStr, sizeof(timeStr), "%H:%M", &timeinfo);}
+  else{
+
+    const char* text = "Hallo Welt!";
+
+    // Sicher kopieren (verhindert Überlauf)
+    strncpy(timeStr, "--:--", sizeof(timeStr));
+      }
+  gfx->print(timeStr);
+  wecker.checkAlarms();}
+Serial.println("Moin");
+}
