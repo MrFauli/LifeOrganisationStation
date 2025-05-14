@@ -3,4 +3,4 @@
 /src/passwort.h
 build/
 test/
-lib/
+# lib/
