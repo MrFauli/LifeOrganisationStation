@@ -23,15 +23,20 @@ public:
     static void my_touchpad_read(lv_indev_t *indev, lv_indev_data_t *data);
     void startLVGL();
     static void timer_Cb(lv_event_t * e);
-    void TimeBox();
-    void InfoBox();
-    void ActionBox();
+    void TimeBox(lv_obj_t *parent);
+    void InfoBox(lv_obj_t *parent);
+    void ActionBox(lv_obj_t *parent);
+    void Arc(lv_obj_t *parent);
+    void Overlay(lv_obj_t *parent);
+    void contentSidePage(lv_obj_t *parent);
+
     void updateTime();
-    void Arc();
+    void Tabview();
     static void value_changed_event_cb(lv_event_t * e);
 private:
     lv_obj_t* arcbox;
     lv_obj_t* timebox;
+    lv_obj_t* overlay;
 };
 
 #endif 

@@ -109,11 +109,7 @@ touchController.setRotation(ROTATION_INVERTED); // Change as needed
 
   }
   
-  TimeBox();
-  Arc();
-
-  InfoBox();
-  ActionBox();
+  Tabview();
 }    
 
 lv_obj_t *infobox;
@@ -126,7 +122,10 @@ lv_obj_t *wheater_label;
 lv_obj_t *wifi_label;
 lv_obj_t *action_label;
 lv_obj_t *select_label;
-lv_obj_t* arc;
+lv_obj_t *credit_label;
+lv_obj_t *arc;
+lv_obj_t *credits;
+lv_obj_t *tabview;
 void LvglUi::timer_Cb(lv_event_t * e) {
   lv_event_code_t code = lv_event_get_code(e);
   auto* ui = static_cast<LvglUi*>(lv_event_get_user_data(e));
@@ -139,11 +138,15 @@ void LvglUi::timer_Cb(lv_event_t * e) {
       selectDuration = !selectDuration;
 
       if(selectDuration){
-        lv_obj_clear_flag(ui->arcbox, LV_OBJ_FLAG_HIDDEN);  // Zeigt das Element
-        lv_obj_add_flag(ui->timebox, LV_OBJ_FLAG_HIDDEN);    // Versteckt das andere
+        if(!timerOn){        
+          lv_obj_clear_flag(ui->arcbox, LV_OBJ_FLAG_HIDDEN);  // Zeigt das Element
+          lv_obj_clear_flag(ui->overlay,LV_OBJ_FLAG_HIDDEN);
+          lv_obj_add_flag(ui->timebox, LV_OBJ_FLAG_HIDDEN);    // Versteckt das andere}
+          
     } 
       else {
           lv_obj_clear_flag(ui->timebox, LV_OBJ_FLAG_HIDDEN);
+          lv_obj_add_flag(ui->overlay,LV_OBJ_FLAG_HIDDEN);
           lv_obj_add_flag(ui->arcbox, LV_OBJ_FLAG_HIDDEN);
           wecker.startTimer(timerArcMin);
           }
@@ -152,7 +155,7 @@ void LvglUi::timer_Cb(lv_event_t * e) {
 
 
   }
-}
+}}
 void LvglUi::value_changed_event_cb(lv_event_t * e)
 {
 
@@ -165,9 +168,9 @@ void LvglUi::value_changed_event_cb(lv_event_t * e)
     /*Rotate the label to the current position of the arc*/
     lv_arc_rotate_obj_to_angle(arc, label, 25);
 }
-void LvglUi::TimeBox(){
+void LvglUi::TimeBox(lv_obj_t *parent){
       // Erstelle eine Box (Container für die Uhrzeit)
-      timebox = lv_obj_create(lv_screen_active());  // Box auf dem aktuellen Bildschirm erstellen
+      timebox = lv_obj_create(parent);  // Box auf dem aktuellen Bildschirm erstellen
       lv_obj_add_event_cb(timebox, LvglUi::timer_Cb, LV_EVENT_ALL, this);
       lv_obj_set_size(timebox, 160,160);      // Boxgröße festlegen
       lv_obj_align(timebox, LV_ALIGN_TOP_LEFT, 0, 0);  // Box mittig ausrichten
@@ -182,9 +185,9 @@ void LvglUi::TimeBox(){
       Serial.println(selectDuration);
 
     }
-void LvglUi::Arc(){
+void LvglUi::Arc(lv_obj_t *parent){
 
-        arcbox = lv_obj_create(lv_screen_active());  // Box auf dem aktuellen Bildschirm erstellen
+        arcbox = lv_obj_create(parent);  // Box auf dem aktuellen Bildschirm erstellen
         lv_obj_set_size(arcbox, 160,160);      // Boxgröße festlegen
         lv_obj_align(arcbox, LV_ALIGN_TOP_LEFT, 0, 0);  // Box mittig ausrichten
         lv_obj_set_style_bg_color(arcbox, lv_color_hex(0x808080), 0); // Box Hintergrundfarbe
@@ -214,8 +217,8 @@ void LvglUi::Arc(){
       }
 
 
-void LvglUi::InfoBox(){
-  lv_obj_t * infobox = lv_obj_create(lv_screen_active());
+void LvglUi::InfoBox(lv_obj_t *parent){
+  lv_obj_t * infobox = lv_obj_create(parent);
   lv_obj_set_size(infobox, 160, 112);
   lv_obj_align(infobox,LV_ALIGN_BOTTOM_LEFT,0,0);
   lv_obj_set_style_bg_color(infobox, lv_color_hex(0x808080), 0); // Box Hintergrundfarbe
@@ -228,8 +231,8 @@ void LvglUi::InfoBox(){
   lv_obj_align(wifi_label, LV_ALIGN_TOP_RIGHT,0,0);
 }
 
-void LvglUi::ActionBox(){
-  lv_obj_t * actionbox = lv_obj_create(lv_screen_active());
+void LvglUi::ActionBox(lv_obj_t *parent){
+  lv_obj_t *actionbox = lv_obj_create(parent);
   lv_obj_set_size(actionbox,320,272);
   lv_obj_align(actionbox,LV_ALIGN_RIGHT_MID,0,0);
   lv_obj_set_style_bg_color(actionbox, lv_color_hex(0x808080), 0); // Box Hintergrundfarbe
@@ -241,7 +244,43 @@ void LvglUi::ActionBox(){
   lv_obj_set_width(action_label, 300); // Breite begrenzen, damit Umbruch stattfinden kann
 
 }
+void LvglUi::Overlay(lv_obj_t *parent){
+  lv_obj_t *overlay = lv_obj_create(parent);
+  lv_obj_set_size(overlay, LV_HOR_RES, LV_VER_RES);
+  lv_obj_set_style_bg_opa(overlay, LV_OPA_TRANSP, 0);  // Transparent
+  lv_obj_clear_flag(overlay, LV_OBJ_FLAG_SCROLLABLE);  // Keine Scrollbarkeit
 
+  // Event hinzufügen, um bei Klick zu schließen
+  lv_obj_add_event_cb(select_label, LvglUi::timer_Cb, LV_EVENT_ALL, this);
+  lv_obj_add_flag(overlay,LV_OBJ_FLAG_HIDDEN);
+}
+
+void LvglUi::contentSidePage(lv_obj_t *parent){
+  lv_obj_t *credits=lv_obj_create(parent);
+
+    lv_obj_align(credits, LV_ALIGN_CENTER, 0, 0);  // Box mittig ausrichten
+    lv_obj_set_style_bg_color(credits, lv_color_hex(0x808080), 0); // Box Hintergrundfarbe
+    
+    credit_label = lv_label_create(credits);
+    lv_obj_align(credit_label,LV_ALIGN_CENTER,0,0);
+    lv_label_set_text(credit_label,"Coded by Gianluca C. Rossi \n" 
+    "LifeOrganisationStation\n"
+    "Last Update: May 2025");
+}
+void LvglUi::Tabview(){
+  tabview = lv_tabview_create(lv_screen_active());
+  lv_obj_t *header = lv_tabview_get_tab_bar(tabview);
+  lv_obj_add_flag(header,LV_OBJ_FLAG_HIDDEN);
+  lv_obj_t * mainPage = lv_tabview_add_tab(tabview,"MainPage");
+
+  TimeBox(mainPage);
+  InfoBox(mainPage);
+  ActionBox(mainPage);
+  Arc(mainPage);
+  Overlay(mainPage);
+  lv_obj_t * sidePage = lv_tabview_add_tab(tabview,"sidePage");
+  contentSidePage(sidePage);
+}
 // Sowohl Zeit wie auch Datum und Wetter aktualisieren
 void LvglUi::updateTime(){
   struct tm timeinfo;

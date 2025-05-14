@@ -72,7 +72,7 @@ void Wecker::checkTimer(){
     }
     if(timerOn){
         timerMin =(timer - millis()) / 60000;
-        timerSec = (timer - millis()) / 1000;
+        timerSec = ((timer - millis()) /timerMin) / 1000;
         timerDauer = String(timerMin) + ":" + String(timerSec);
         Serial.println(timerDauer);
         Serial.println(timerMin);
