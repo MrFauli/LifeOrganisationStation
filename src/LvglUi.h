@@ -27,7 +27,11 @@ public:
     void InfoBox();
     void ActionBox();
     void updateTime();
-
+    void Arc();
+    static void value_changed_event_cb(lv_event_t * e);
+private:
+    lv_obj_t* arcbox;
+    lv_obj_t* timebox;
 };
 
 #endif 

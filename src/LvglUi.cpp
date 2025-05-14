@@ -22,6 +22,10 @@ extern bool timerOn;
 extern int currentMin;
 extern int lastMin;
 bool wifiOn = false;
+bool selectDuration = false;
+bool statusSelectDuration = false;
+int timerArcMin =5;
+
 // LVGL calls this function when a rendered image needs to copied to the display
 void LvglUi::my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
     uint32_t w = lv_area_get_width(area);
@@ -104,12 +108,16 @@ touchController.setRotation(ROTATION_INVERTED); // Change as needed
     lv_indev_set_read_cb(indev,  LvglUi::my_touchpad_read);
 
   }
+  
   TimeBox();
+  Arc();
+
   InfoBox();
   ActionBox();
 }    
-lv_obj_t *timebox;  
+
 lv_obj_t *infobox;
+lv_obj_t *arcbox;
 lv_obj_t *actionbox;
 lv_obj_t *time_label;  
 lv_obj_t *timer_label;
@@ -117,29 +125,94 @@ lv_obj_t *date_label;
 lv_obj_t *wheater_label;
 lv_obj_t *wifi_label;
 lv_obj_t *action_label;
+lv_obj_t *select_label;
+lv_obj_t* arc;
 void LvglUi::timer_Cb(lv_event_t * e) {
   lv_event_code_t code = lv_event_get_code(e);
+  auto* ui = static_cast<LvglUi*>(lv_event_get_user_data(e));
+ 
   if (code == LV_EVENT_CLICKED) {
-      Serial.println("Button wurde geklickt!");
-      wecker.startTimer(1);
+     Serial.println("hey");
+      // Serial.println("Button wurde geklickt!");
+      // wecker.startTimer(1);
+      Serial.println(selectDuration);
+      selectDuration = !selectDuration;
+
+      if(selectDuration){
+        lv_obj_clear_flag(ui->arcbox, LV_OBJ_FLAG_HIDDEN);  // Zeigt das Element
+        lv_obj_add_flag(ui->timebox, LV_OBJ_FLAG_HIDDEN);    // Versteckt das andere
+    } 
+      else {
+          lv_obj_clear_flag(ui->timebox, LV_OBJ_FLAG_HIDDEN);
+          lv_obj_add_flag(ui->arcbox, LV_OBJ_FLAG_HIDDEN);
+          wecker.startTimer(timerArcMin);
+          }
+        statusSelectDuration = selectDuration;
+
+
+
   }
 }
+void LvglUi::value_changed_event_cb(lv_event_t * e)
+{
 
+    lv_obj_t * arc = lv_event_get_target_obj(e);
+    Serial.println(lv_arc_get_value(arc));
+    lv_obj_t * label = (lv_obj_t *)lv_event_get_user_data(e);
+
+    lv_label_set_text_fmt(label, "%" LV_PRId32 "Min", lv_arc_get_value(arc));
+    timerArcMin =lv_arc_get_value(arc);
+    /*Rotate the label to the current position of the arc*/
+    lv_arc_rotate_obj_to_angle(arc, label, 25);
+}
 void LvglUi::TimeBox(){
       // Erstelle eine Box (Container für die Uhrzeit)
-      lv_obj_t * timebox = lv_obj_create(lv_screen_active());  // Box auf dem aktuellen Bildschirm erstellen
-      lv_obj_add_event_cb(timebox, LvglUi::timer_Cb, LV_EVENT_ALL, NULL);
+      timebox = lv_obj_create(lv_screen_active());  // Box auf dem aktuellen Bildschirm erstellen
+      lv_obj_add_event_cb(timebox, LvglUi::timer_Cb, LV_EVENT_ALL, this);
       lv_obj_set_size(timebox, 160,160);      // Boxgröße festlegen
       lv_obj_align(timebox, LV_ALIGN_TOP_LEFT, 0, 0);  // Box mittig ausrichten
       lv_obj_set_style_bg_color(timebox, lv_color_hex(0x808080), 0); // Box Hintergrundfarbe
-  
+      // lv_style_set_text_font(&style, LV_STATE_DEFAULT, &lv_font_montserrat_20); // Schriftgröße 20
+
       // Erstelle das Label für die Uhrzeit
       time_label = lv_label_create(timebox);    // Label innerhalb der Box erstellen
       lv_obj_align(time_label, LV_ALIGN_CENTER, 0, 0);  // Label mittig in der Box ausrichten
       timer_label = lv_label_create(timebox);    // Label innerhalb der Box erstellen
       lv_obj_align(timer_label, LV_ALIGN_CENTER, 0, 20);  // Label mittig in der Box ausrichten
-      
+      Serial.println(selectDuration);
+
     }
+void LvglUi::Arc(){
+
+        arcbox = lv_obj_create(lv_screen_active());  // Box auf dem aktuellen Bildschirm erstellen
+        lv_obj_set_size(arcbox, 160,160);      // Boxgröße festlegen
+        lv_obj_align(arcbox, LV_ALIGN_TOP_LEFT, 0, 0);  // Box mittig ausrichten
+        lv_obj_set_style_bg_color(arcbox, lv_color_hex(0x808080), 0); // Box Hintergrundfarbe
+    
+        lv_obj_t * label = lv_label_create(arcbox);
+        /*Create an Arc*/
+        arc = lv_arc_create(arcbox);
+        lv_obj_set_size(arc, 100, 100);
+        lv_arc_set_rotation(arc, 135);
+        lv_arc_set_bg_angles(arc, 0, 270);
+
+        lv_arc_set_range(arc,1,60);
+        lv_arc_set_value(arc, timerArcMin);
+        lv_obj_center(arc);
+        lv_obj_add_event_cb(arc, LvglUi::value_changed_event_cb, LV_EVENT_VALUE_CHANGED, label);
+
+        lv_obj_align(arcbox, LV_ALIGN_TOP_LEFT, 0, 0);  // Box mittig ausrichten
+      
+        /*Manually update the label for the first time*/
+        lv_obj_send_event(arc, LV_EVENT_VALUE_CHANGED, NULL);
+        //   // Interaktivität sicherstellen
+        // lv_obj_add_state(arc, LV_STATE_DEFAULT); // Aktivieren der interaktiven Standard-Eigenschaft
+        select_label = lv_btn_create(arcbox);
+        lv_obj_center(select_label);
+        lv_obj_add_event_cb(select_label, LvglUi::timer_Cb, LV_EVENT_ALL, this);
+        lv_obj_add_flag(arcbox, LV_OBJ_FLAG_HIDDEN);
+      }
+
 
 void LvglUi::InfoBox(){
   lv_obj_t * infobox = lv_obj_create(lv_screen_active());
@@ -168,6 +241,7 @@ void LvglUi::ActionBox(){
   lv_obj_set_width(action_label, 300); // Breite begrenzen, damit Umbruch stattfinden kann
 
 }
+
 // Sowohl Zeit wie auch Datum und Wetter aktualisieren
 void LvglUi::updateTime(){
   struct tm timeinfo;

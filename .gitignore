@@ -1,6 +1,6 @@
 .pio/
 .vscode/
-src
+/src/passwort.h
 build/
 test/
 lib/
