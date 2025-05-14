@@ -269,8 +269,13 @@ void LvglUi::contentSidePage(lv_obj_t *parent){
 }
 void LvglUi::Tabview(){
   tabview = lv_tabview_create(lv_screen_active());
-  lv_obj_t *header = lv_tabview_get_tab_bar(tabview);
-  lv_obj_add_flag(header,LV_OBJ_FLAG_HIDDEN);
+  //   lv_obj_t *header = lv_tabview_get_tab_bar(tabview);
+  // lv_obj_add_flag(header,LV_OBJ_FLAG_HIDDEN);
+  lv_tabview_set_tab_bar_position(tabview, LV_DIR_NONE);
+lv_obj_set_style_pad_all(tabview, 0, 0);
+lv_obj_set_style_border_width(tabview, 0, 0);
+lv_obj_set_style_radius(tabview, 0, 0);
+
   lv_obj_t * mainPage = lv_tabview_add_tab(tabview,"MainPage");
 
   TimeBox(mainPage);
