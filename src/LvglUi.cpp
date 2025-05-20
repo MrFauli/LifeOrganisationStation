@@ -8,11 +8,12 @@ uint32_t bufSize;
 lv_display_t *disp;
 lv_color_t *disp_draw_buf;
 extern TAMC_GT911 touchController;
+extern bool uhrGesetzt;
 #define LV_COLOR_DEPTH 16
 LvglUi::LvglUi() {
     // Konstruktor-Inhalt
 }
-
+  
 uint32_t LvglUi::millis_cb(void)
 {
   return millis();
@@ -21,10 +22,10 @@ extern String timerDauer;
 extern bool timerOn;
 extern int currentMin;
 extern int lastMin;
-bool wifiOn = false;
-bool selectDuration = false;
-bool statusSelectDuration = false;
+bool wifiOn ;
 int timerArcMin =5;
+bool statusSelectDuration = false;
+extern String localIp;
 
 // LVGL calls this function when a rendered image needs to copied to the display
 void LvglUi::my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
@@ -99,7 +100,9 @@ touchController.setRotation(ROTATION_INVERTED); // Change as needed
   }
   else
   {
+    
     disp = lv_display_create(screenWidth, screenHeight);
+    // lv_disp_set_rotation(NULL,LV_DISP_ROTATION_180);
     lv_display_set_flush_cb(disp,  LvglUi::my_disp_flush);
     lv_display_set_buffers(disp, disp_draw_buf, NULL, bufSize, LV_DISPLAY_RENDER_MODE_PARTIAL);
     // Create input device (touchpad of the JC4827W543)
@@ -108,8 +111,16 @@ touchController.setRotation(ROTATION_INVERTED); // Change as needed
     lv_indev_set_read_cb(indev,  LvglUi::my_touchpad_read);
 
   }
+  prefs.begin("settings",false);
+  bool configured = prefs.getBool("Configured",false);
+  if(configured == false){
+    startConfiguration();
+  }
+  else{
+ Tabview();
+  }
   
-  Tabview();
+
 }    
 
 lv_obj_t *infobox;
@@ -123,50 +134,81 @@ lv_obj_t *wifi_label;
 lv_obj_t *action_label;
 lv_obj_t *select_label;
 lv_obj_t *credit_label;
+lv_obj_t *reset_label;
+lv_obj_t *start_label;
 lv_obj_t *arc;
 lv_obj_t *credits;
-lv_obj_t *tabview;
+
+lv_obj_t *resetButton;
 void LvglUi::timer_Cb(lv_event_t * e) {
   lv_event_code_t code = lv_event_get_code(e);
   auto* ui = static_cast<LvglUi*>(lv_event_get_user_data(e));
  
-  if (code == LV_EVENT_CLICKED) {
-     Serial.println("hey");
-      // Serial.println("Button wurde geklickt!");
-      // wecker.startTimer(1);
-      Serial.println(selectDuration);
-      selectDuration = !selectDuration;
+if (code == LV_EVENT_CLICKED) {
+    Serial.println("hey");
 
-      if(selectDuration){
-        if(!timerOn){        
-          lv_obj_clear_flag(ui->arcbox, LV_OBJ_FLAG_HIDDEN);  // Zeigt das Element
-          lv_obj_clear_flag(ui->overlay,LV_OBJ_FLAG_HIDDEN);
-          lv_obj_add_flag(ui->timebox, LV_OBJ_FLAG_HIDDEN);    // Versteckt das andere}
-          
-    } 
-      else {
-          lv_obj_clear_flag(ui->timebox, LV_OBJ_FLAG_HIDDEN);
-          lv_obj_add_flag(ui->overlay,LV_OBJ_FLAG_HIDDEN);
-          lv_obj_add_flag(ui->arcbox, LV_OBJ_FLAG_HIDDEN);
-          wecker.startTimer(timerArcMin);
-          }
-        statusSelectDuration = selectDuration;
+    ui->selectDuration = !ui->selectDuration;
 
+    if (ui->selectDuration) {
+        if (!timerOn) { 
+            Serial.println("Tag");  
+            lv_obj_clear_flag(ui->overlay, LV_OBJ_FLAG_HIDDEN);     
+            lv_obj_clear_flag(ui->arcbox, LV_OBJ_FLAG_HIDDEN);  
+            lv_obj_add_flag(ui->timebox, LV_OBJ_FLAG_HIDDEN);    
+        }
+    } else {  
+        Serial.print("nacht");
+        lv_obj_add_flag(ui->overlay, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(ui->arcbox, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_clear_flag(ui->timebox, LV_OBJ_FLAG_HIDDEN);
+        wecker.startTimer(timerArcMin);
+        Serial.println(timerArcMin);
+    }
 
+    statusSelectDuration = ui->selectDuration;
+}
+}
 
-  }
-}}
 void LvglUi::value_changed_event_cb(lv_event_t * e)
 {
-
+    auto* ui = static_cast<LvglUi*>(lv_event_get_user_data(e));
     lv_obj_t * arc = lv_event_get_target_obj(e);
     Serial.println(lv_arc_get_value(arc));
     lv_obj_t * label = (lv_obj_t *)lv_event_get_user_data(e);
 
     lv_label_set_text_fmt(label, "%" LV_PRId32 "Min", lv_arc_get_value(arc));
     timerArcMin =lv_arc_get_value(arc);
+    Serial.println("timer");
+    Serial.println(timerArcMin);
     /*Rotate the label to the current position of the arc*/
     lv_arc_rotate_obj_to_angle(arc, label, 25);
+}
+
+void LvglUi::overlay_cb(lv_event_t * e){
+    lv_event_code_t code = lv_event_get_code(e);
+    auto* ui = static_cast<LvglUi*>(lv_event_get_user_data(e));
+    if (code == LV_EVENT_CLICKED) {
+    Serial.println("overlay");
+    auto* ui = static_cast<LvglUi*>(lv_event_get_user_data(e));
+    lv_obj_clear_flag(ui->timebox, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui->overlay,LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(ui->arcbox, LV_OBJ_FLAG_HIDDEN);
+    ui->selectDuration = false;
+    }
+}
+
+void LvglUi::reset_Cb(lv_event_t * e){
+    lv_event_code_t code = lv_event_get_code(e);
+    auto* ui = static_cast<LvglUi*>(lv_event_get_user_data(e));
+    if (code == LV_EVENT_CLICKED) {
+      Serial.println("reset...");
+      prefs.begin("settings",false);
+      prefs.putBool("Configured",false);
+      prefs.end();
+      lv_obj_add_flag(ui->tabview,LV_OBJ_FLAG_HIDDEN);
+      ui->resetScreen();
+      ESP.restart();
+    }
 }
 void LvglUi::TimeBox(lv_obj_t *parent){
       // Erstelle eine Box (Container für die Uhrzeit)
@@ -245,13 +287,13 @@ void LvglUi::ActionBox(lv_obj_t *parent){
 
 }
 void LvglUi::Overlay(lv_obj_t *parent){
-  lv_obj_t *overlay = lv_obj_create(parent);
+  overlay = lv_obj_create(parent);
   lv_obj_set_size(overlay, LV_HOR_RES, LV_VER_RES);
-  lv_obj_set_style_bg_opa(overlay, LV_OPA_TRANSP, 0);  // Transparent
+lv_obj_set_style_bg_opa(overlay, LV_OPA_TRANSP, 0);
   lv_obj_clear_flag(overlay, LV_OBJ_FLAG_SCROLLABLE);  // Keine Scrollbarkeit
 
   // Event hinzufügen, um bei Klick zu schließen
-  lv_obj_add_event_cb(select_label, LvglUi::timer_Cb, LV_EVENT_ALL, this);
+  lv_obj_add_event_cb(overlay, LvglUi::overlay_cb, LV_EVENT_ALL, this);
   lv_obj_add_flag(overlay,LV_OBJ_FLAG_HIDDEN);
 }
 
@@ -260,30 +302,74 @@ void LvglUi::contentSidePage(lv_obj_t *parent){
 
     lv_obj_align(credits, LV_ALIGN_CENTER, 0, 0);  // Box mittig ausrichten
     lv_obj_set_style_bg_color(credits, lv_color_hex(0x808080), 0); // Box Hintergrundfarbe
-    
+    lv_obj_set_size(credits,200,200);
     credit_label = lv_label_create(credits);
     lv_obj_align(credit_label,LV_ALIGN_CENTER,0,0);
     lv_label_set_text(credit_label,"Coded by Gianluca C. Rossi \n" 
     "LifeOrganisationStation\n"
-    "Last Update: May 2025");
+    "Last Update: May 2025\n"
+    "los.local" );
+    lv_obj_t *resetButton = lv_button_create(parent);
+    lv_obj_set_style_bg_color(resetButton, lv_color_hex(0xff0000), 0); // Box Hintergrundfarbe
+    lv_obj_set_size(resetButton,50,50);
+    // Positioniere den Button unterhalb der Box "credits"
+    lv_obj_align_to(resetButton, credits, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);  // 10 Pixel Abstand nach unten
+
+    reset_label = lv_label_create(resetButton);
+    lv_label_set_text(reset_label,"Reset");
+lv_obj_add_event_cb(resetButton, LvglUi::reset_Cb, LV_EVENT_ALL,NULL);
+        
+}
+void LvglUi::resetScreen(){
+  lv_obj_t *startScreen = lv_obj_create(lv_screen_active());
+  lv_obj_align(startScreen,LV_ALIGN_CENTER,0,0);
+  lv_obj_set_style_bg_color(startScreen, lv_color_hex(0x808080), 0); // Box Hintergrundfarbe
+  lv_obj_set_size(startScreen,300,250);
+  start_label = lv_label_create(startScreen);
+  lv_obj_align(start_label,LV_ALIGN_CENTER,0,0);
+
+  lv_label_set_text(start_label,"LOS wird neugestartet...\n"
+  "Dies kann einige Zeit in Anspruch nehmen!\n" 
+  "Bitte trennen sie das Gerät nicht vom Strom."
+  );
+}
+void LvglUi::startConfiguration(){
+  lv_obj_t *startScreen = lv_obj_create(lv_screen_active());
+  lv_obj_align(startScreen,LV_ALIGN_CENTER,0,0);
+  lv_obj_set_style_bg_color(startScreen, lv_color_hex(0x808080), 0); // Box Hintergrundfarbe
+  lv_obj_set_size(startScreen,300,250);
+  start_label = lv_label_create(startScreen);
+  lv_obj_align(start_label,LV_ALIGN_CENTER,0,0);
+  String startText = "Welcome to LOS! \n" 
+  "Please connect to following WiFi:\n"
+  "Name: " + WiFi.softAPSSID() + "\n" +
+  "Passwort: LOSBGT11\n"
+  "Then go in your Browser and search:\n"
+  + WiFi.softAPIP().toString();
+  lv_label_set_text(start_label,startText.c_str());
 }
 void LvglUi::Tabview(){
   tabview = lv_tabview_create(lv_screen_active());
-  //   lv_obj_t *header = lv_tabview_get_tab_bar(tabview);
-  // lv_obj_add_flag(header,LV_OBJ_FLAG_HIDDEN);
-  lv_tabview_set_tab_bar_position(tabview, LV_DIR_NONE);
-lv_obj_set_style_pad_all(tabview, 0, 0);
-lv_obj_set_style_border_width(tabview, 0, 0);
-lv_obj_set_style_radius(tabview, 0, 0);
+    lv_obj_t *header = lv_tabview_get_tab_bar(tabview);
+  lv_obj_add_flag(header,LV_OBJ_FLAG_HIDDEN);
+  // lv_tabview_set_tab_bar_position(tabview, LV_DIR_NONE);
 
   lv_obj_t * mainPage = lv_tabview_add_tab(tabview,"MainPage");
-
+  lv_obj_set_style_pad_all(mainPage, 0, 0);
+  lv_obj_set_style_border_width(mainPage, 0, 0);
+  lv_obj_set_style_radius(mainPage, 0, 0);
   TimeBox(mainPage);
   InfoBox(mainPage);
   ActionBox(mainPage);
+   Overlay(mainPage);
+  
+ 
   Arc(mainPage);
-  Overlay(mainPage);
+
   lv_obj_t * sidePage = lv_tabview_add_tab(tabview,"sidePage");
+  lv_obj_set_style_pad_all(sidePage, 0, 0);
+  lv_obj_set_style_border_width(sidePage, 0, 0);
+  lv_obj_set_style_radius(sidePage, 0, 0);
   contentSidePage(sidePage);
 }
 // Sowohl Zeit wie auch Datum und Wetter aktualisieren
@@ -299,7 +385,7 @@ void LvglUi::updateTime(){
     wifiOn = true;
     lv_label_set_text(wifi_label,"WiFi");
   }
-  else if(WiFi.status() != WL_CONNECTED && wifiOn != false){
+  else if((WiFi.status() != WL_CONNECTED && wifiOn != false) || uhrGesetzt != true) {
     wifiOn = false;
     lv_label_set_text(wifi_label,"Nope");
   }

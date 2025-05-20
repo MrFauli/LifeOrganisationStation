@@ -12,17 +12,14 @@ void SoundPlayer::stopSound(){
 
     if(playing){
     playing = false;
-    Serial.println("Wiedergabe gestoppt");
+
     Serial.println("Wiedergabe abgeschlossen");
     mp3File.close();}
 
 }
 
 void SoundPlayer::begin() {
-    Serial.begin(115200);
-    while (!Serial) {
-        delay(10);  // Warte, bis USB verbunden ist
-    }
+
     // SD Card initialisieren
     pinMode(10, OUTPUT);
     digitalWrite(10, HIGH);

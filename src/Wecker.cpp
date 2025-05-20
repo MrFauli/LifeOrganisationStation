@@ -23,7 +23,9 @@ Wecker::Wecker(){};
 // }
 void Wecker::addAlarm(int hour, int minute){
     alarmList.push_back(singleAlarm(hour,minute));
-
+    Serial.println("Added Alarm: ");
+    Serial.println(minute);
+    
 }
 void Wecker::checkAlarms(){
     int length = alarmList.size();
@@ -72,8 +74,12 @@ void Wecker::checkTimer(){
     }
     if(timerOn){
         timerMin =(timer - millis()) / 60000;
-        timerSec = ((timer - millis()) /timerMin) / 1000;
-        timerDauer = String(timerMin) + ":" + String(timerSec);
+        timerSec = ((timer - millis()) % 60000)/1000;
+        String timerSecStr =String(timerSec);
+        if(sizeof(timerSec)==1){
+            timerSecStr = "0" + timerSec;
+        }
+        timerDauer = String(timerMin) + ":" + timerSecStr;
         Serial.println(timerDauer);
         Serial.println(timerMin);
         Serial.println(timerSec);
