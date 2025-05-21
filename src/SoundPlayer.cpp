@@ -1,10 +1,11 @@
 
 #include "SoundPlayer.h"
+const char* streamURL = "http://stream.laut.fm/rockantenne"; // Beispiel
 
-SoundPlayer::SoundPlayer() :volume(i2s), decoder(&volume, new MP3DecoderHelix()),lvc(0.1f)
+SoundPlayer::SoundPlayer() :url(),volume(i2s), decoder(&volume, new MP3DecoderHelix()),lvc(0.1f),stream(decoder,url)
 {
    volume.setVolumeControl(lvc);          // Lautstärkeregelung aktivieren
-    volume.setVolume(0.4f);    
+    volume.setVolume(0.6f);    
 
 }
 
@@ -32,6 +33,26 @@ void SoundPlayer::begin() {
 
 }
 
+// void SoundPlayer::toogleRadio(){
+//     auto config = i2s.defaultConfig(TX_MODE);
+//     config.pin_ws = 2;
+//     config.pin_bck = 42;
+//     config.pin_mck = -1;
+//     config.pin_data =41;
+//     Serial.println("test radio");
+// WiFiClient client;
+// if (!client.connect("stream.srg-ssr.ch", 80)) {
+//     Serial.println("Kann keine Verbindung zum Server aufbauen.");
+// } else {
+//     Serial.println("Server erreichbar.");
+//     client.stop();
+// }
+//     i2s.begin(config);
+//     decoder.begin();
+//     url.begin("http://stream.srg-ssr.ch/m/rsj/mp3_128", "audio/mpeg");
+//     Serial.println("Radio");
+//     playing = true;
+// }
 void SoundPlayer::playMP3(const char* fileName) {
     begin();
     mp3File = SD_MMC.open(fileName);
@@ -58,6 +79,7 @@ void SoundPlayer::playMP3(const char* fileName) {
 void SoundPlayer::updatePlaying() {
 
     if(playing == true){
+        // stream.copy();
         if (!copier.copy()) {
             Serial.println("Wiedergabe abgeschlossen");
             stopSound();

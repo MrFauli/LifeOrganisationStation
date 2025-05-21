@@ -28,6 +28,7 @@ public:
     static void value_changed_event_cb(lv_event_t * e);
     static void timer_Cb(lv_event_t * e);
     static void reset_Cb(lv_event_t * e);
+    static void soundSpecial(lv_event_t * e);
     void TimeBox(lv_obj_t *parent);
     void InfoBox(lv_obj_t *parent);
     void ActionBox(lv_obj_t *parent);
@@ -35,6 +36,7 @@ public:
     void Overlay(lv_obj_t *parent);
     void contentSidePage(lv_obj_t *parent);
     void resetScreen();
+
     void startConfiguration();
     void updateTime();
     void Tabview();
@@ -45,8 +47,8 @@ private:
     lv_obj_t* overlay;
     lv_obj_t* tabview;
     bool selectDuration = false;
+    struct tm timeinfo;
     
-
 };
 
 #endif 

@@ -21,7 +21,8 @@ public:
     void makeAlarm(int hour, int minute);
     void startTimer(int minute);
     void checkTimer();
-    
+private:
+    struct tm timeinfo;
 };
 
 #endif

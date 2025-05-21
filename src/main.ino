@@ -18,6 +18,7 @@
 #include <Arduino.h>
 #include <ESPmDNS.h>
 #include <Preferences.h>
+struct tm timeinfo;
 int num = 1;
 bool configured;
 extern struct tm timeinfo;
@@ -180,7 +181,7 @@ void startServer(){
   Serial.print(":");
   Serial.println(minute);
     prefs.end();
-    server.send(200,"text/html","Submit");
+    server.send(200,"text/html","Wecker gestellt. Wenn sie eine neue Uhrzeit wollen,\n überschreiben sie den gestellten Wecker. \n Für mehr Wecker Plätze, kaufen sie LOS Premium ");
       
   });
   server.begin();
@@ -194,8 +195,8 @@ void setup() {
   unsigned long startAttemptTime = millis();
   prefs.begin("settings",false);
   configured = prefs.getBool("Configured",false);
-  
-
+  bool startDanke = prefs.getBool("Danke",false);
+  bool startTutorial = prefs.getBool("Tutorial",false);
   // Beispiel: Wert auslesen
   int hour = prefs.getInt("alarmHour", 0); // 0 = Defaultwert, falls nicht vorhanden
   int minute = prefs.getInt("alarmMin", 0);
@@ -244,6 +245,15 @@ void setup() {
 
     prefs.end();
     startConfiguration();
+    if(!startDanke){
+      player.playMP3("/danke.mp3");
+      prefs.begin("settings",false);
+      prefs.putBool("Danke",true);
+      prefs.end();
+
+    }
+
+
   }
   else{
 
@@ -264,10 +274,19 @@ void setup() {
     delay(500);
     Serial.print(".");
   }
+
     prefs.end();
     Serial.println(home_ssid);
     Serial.println(home_password);
-    startServer();}
+    startServer();
+      if(!startTutorial){
+      player.playMP3("/tutorial.mp3");
+      prefs.begin("settings",false);
+      prefs.putBool("Tutorial",true);
+      prefs.end();
+
+    }
+}
 
 
     startAttemptTime = millis();
@@ -291,27 +310,51 @@ void setup() {
 }
 
 void loop(){
-  
 
-  delay(5);
+
+
   lv_timer_handler(); /* let the GUI do its work */
-  server.handleClient();
-  // Serial.println("texzt");
+  if (WiFi.getMode() == WIFI_AP || WiFi.status() == WL_CONNECTED) {
+
+  server.handleClient();}
+
+
   wecker.checkTimer();
   player.updatePlaying();
   wecker.checkAlarms();
-  if(configured && WiFi.getMode() == WIFI_STA){    
-    if(millis()- lastUpdate >= 1000){
+
+
+  if(configured ){    
+    if(millis()- lastUpdate >= 1000&& WiFi.getMode() == WIFI_STA){
     gui.updateTime();
     lastUpdate = millis();
+
     }}
 
 
 
-  if(WL_CONNECTED == WiFi.status()){
-  // struct tm timeinfo;
-  // getLocalTime(&timeinfo);
-  // currentMin = timeinfo.tm_min;
+  if(WL_CONNECTED == WiFi.status() && WiFi.getMode() == WIFI_STA){
+
+    if(!uhrGesetzt){
+        int currentMin = timeinfo.tm_min;
+      wetter.getWeatherData();
+      Serial.println("Temperatur");
+      Serial.println(Temperatur);
+      lastWheater = millis();
+    }
+  if(!uhrGesetzt && WL_CONNECTED == WiFi.status()){
+    struct tm timeinfo;
+
+
+    configTzTime("CET-1CEST,M3.5.0/2,M10.5.0/3", "pool.ntp.org");
+      
+      getLocalTime(&timeinfo);
+
+      currentMin = timeinfo.tm_min;
+
+    
+      uhrGesetzt = true;
+  }
   if(millis() - lastWheater >= wheaterInterval|| uhrGesetzt != true){
     wetter.getWeatherData();
     Serial.println("Temperatur");
@@ -319,18 +362,17 @@ void loop(){
     lastWheater = millis();
     configTzTime("CET-1CEST,M3.5.0/2,M10.5.0/3", "pool.ntp.org");
     }  
+  }
+  if(uhrGesetzt){
+    getLocalTime(&timeinfo);
 
-      uhrGesetzt = true;
-
+    currentMin = timeinfo.tm_min;
 
   }
-  else{  
-
-       int currentMin = 62;
-  WiFiReconnect();}
   if(digitalRead(button) == LOW ){
     player.stopSound();
   }
-
+    // Serial.println("Temperatur");
+    // Serial.println(Temperatur);
 
 }

@@ -9,6 +9,9 @@ lv_display_t *disp;
 lv_color_t *disp_draw_buf;
 extern TAMC_GT911 touchController;
 extern bool uhrGesetzt;
+extern unsigned long lastWheater;
+const unsigned long wheaterInterval = 15 * 60 * 1000UL; // 15 Minuten
+bool WetterGesetzt = false;
 #define LV_COLOR_DEPTH 16
 LvglUi::LvglUi() {
     // Konstruktor-Inhalt
@@ -22,7 +25,7 @@ extern String timerDauer;
 extern bool timerOn;
 extern int currentMin;
 extern int lastMin;
-bool wifiOn ;
+bool wifiOn;
 int timerArcMin =5;
 bool statusSelectDuration = false;
 extern String localIp;
@@ -161,6 +164,7 @@ if (code == LV_EVENT_CLICKED) {
         lv_obj_add_flag(ui->overlay, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(ui->arcbox, LV_OBJ_FLAG_HIDDEN);
         lv_obj_clear_flag(ui->timebox, LV_OBJ_FLAG_HIDDEN);
+        player.playMP3("/button.mp3");
         wecker.startTimer(timerArcMin);
         Serial.println(timerArcMin);
     }
@@ -201,13 +205,31 @@ void LvglUi::reset_Cb(lv_event_t * e){
     lv_event_code_t code = lv_event_get_code(e);
     auto* ui = static_cast<LvglUi*>(lv_event_get_user_data(e));
     if (code == LV_EVENT_CLICKED) {
+      player.playMP3("discord.mp3");
       Serial.println("reset...");
-      prefs.begin("settings",false);
-      prefs.putBool("Configured",false);
-      prefs.end();
+
       lv_obj_add_flag(ui->tabview,LV_OBJ_FLAG_HIDDEN);
       ui->resetScreen();
+      lv_timer_handler(); /* let the GUI do its work */
+      unsigned long start = millis();
+      while (millis() - start < 5000) {
+        player.updatePlaying();
+        lv_timer_handler(); /* let the GUI do its work */
+        delay(10);  // minimal blockieren, aber nicht komplett
+      }
+      prefs.begin("settings",false);
+      prefs.putBool("Configured",false);
+      prefs.putBool("Danke",false);
+      prefs.putBool("Tutorial",false);
+      prefs.end();
       ESP.restart();
+    }
+}
+void LvglUi::soundSpecial(lv_event_t * e){
+    lv_event_code_t code = lv_event_get_code(e);
+    if (code == LV_EVENT_CLICKED) {
+      player.playMP3("/error.mp3");
+      delay(100);
     }
 }
 void LvglUi::TimeBox(lv_obj_t *parent){
@@ -271,6 +293,7 @@ void LvglUi::InfoBox(lv_obj_t *parent){
   lv_obj_align(wheater_label, LV_ALIGN_TOP_LEFT,0,0);
   wifi_label = lv_label_create(infobox);
   lv_obj_align(wifi_label, LV_ALIGN_TOP_RIGHT,0,0);
+  lv_obj_add_event_cb(infobox, LvglUi::soundSpecial, LV_EVENT_ALL, this);
 }
 
 void LvglUi::ActionBox(lv_obj_t *parent){
@@ -281,9 +304,11 @@ void LvglUi::ActionBox(lv_obj_t *parent){
   
 
   action_label= lv_label_create(actionbox);
-  lv_obj_align(action_label,LV_ALIGN_CENTER,0,0);
-  lv_label_set_text(action_label,"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor.");
+  
+  lv_label_set_text(action_label,"   " LV_SYMBOL_HOME "   Next Termin: Training 17:00\n" "   "LV_SYMBOL_EDIT "   To-Do: Lernen\n" );
+
   lv_obj_set_width(action_label, 300); // Breite begrenzen, damit Umbruch stattfinden kann
+  lv_obj_align(action_label, LV_ALIGN_CENTER, 0, 0);  // Label mittig in der Box ausrichten
 
 }
 void LvglUi::Overlay(lv_obj_t *parent){
@@ -302,7 +327,7 @@ void LvglUi::contentSidePage(lv_obj_t *parent){
 
     lv_obj_align(credits, LV_ALIGN_CENTER, 0, 0);  // Box mittig ausrichten
     lv_obj_set_style_bg_color(credits, lv_color_hex(0x808080), 0); // Box Hintergrundfarbe
-    lv_obj_set_size(credits,200,200);
+    lv_obj_set_size(credits,250,200);
     credit_label = lv_label_create(credits);
     lv_obj_align(credit_label,LV_ALIGN_CENTER,0,0);
     lv_label_set_text(credit_label,"Coded by Gianluca C. Rossi \n" 
@@ -317,7 +342,7 @@ void LvglUi::contentSidePage(lv_obj_t *parent){
 
     reset_label = lv_label_create(resetButton);
     lv_label_set_text(reset_label,"Reset");
-lv_obj_add_event_cb(resetButton, LvglUi::reset_Cb, LV_EVENT_ALL,NULL);
+lv_obj_add_event_cb(resetButton, LvglUi::reset_Cb, LV_EVENT_ALL,this);
         
 }
 void LvglUi::resetScreen(){
@@ -374,30 +399,40 @@ void LvglUi::Tabview(){
 }
 // Sowohl Zeit wie auch Datum und Wetter aktualisieren
 void LvglUi::updateTime(){
-  struct tm timeinfo;
-  // einbauen einer alle 15 min funktion wie main.ino
-  char wheater_str[20];
-  snprintf(wheater_str,sizeof(wheater_str), "%.2f°C", Temperatur);
+    char wheater_str[20];
+  // // einbauen einer alle 15 min funktion wie main.ino
+    if(millis() - lastWheater >= wheaterInterval || uhrGesetzt && !WetterGesetzt){
+      Serial.print("LVGL");
+      Serial.println(Temperatur);
+    WetterGesetzt = true;
+    snprintf(wheater_str,sizeof(wheater_str), "%.2f°C", Temperatur);
 
-  
-  lv_label_set_text(wheater_label,wheater_str);
+    lv_label_set_text(wheater_label, wheater_str);
+  }
+
   if(WiFi.status() == WL_CONNECTED && wifiOn != true){
     wifiOn = true;
-    lv_label_set_text(wifi_label,"WiFi");
+    Serial.println("Wifi on");
+    lv_label_set_text(wifi_label,"WiFi" LV_SYMBOL_WIFI);
   }
-  else if((WiFi.status() != WL_CONNECTED && wifiOn != false) || uhrGesetzt != true) {
+  else if((WiFi.status() != WL_CONNECTED && wifiOn != false)) {
     wifiOn = false;
-    lv_label_set_text(wifi_label,"Nope");
+    Serial.println("Wifi false");
+    lv_label_set_text(wifi_label,LV_SYMBOL_WARNING);
   }
   // zeitrechnung in min.sek und nicht sek.millis
   if(timerOn){
       lv_label_set_text(timer_label, timerDauer.c_str());
       Serial.println(timerDauer.c_str());
+      Serial.println("Timer on");
   }
   else if (timerOn == false && timerDauer != "#"){
     timerDauer = "#" ;
     lv_label_set_text(timer_label,"");
+    Serial.println("Timer off");
   }
+  if( uhrGesetzt){
+
   if(getLocalTime(&timeinfo) && currentMin != lastMin ){
     char time_str[9];  // Puffer für die Uhrzeit im Format HH:MM:SS
     char date_str[12]; 
@@ -409,11 +444,19 @@ void LvglUi::updateTime(){
     // Aktualisiere das Label mit der aktuellen Uhrzeit
     lv_label_set_text(time_label, time_str);
     lv_label_set_text(date_label, date_str  );
-  }
+    Serial.println("get Clock");
+  }}
   else if(lastMin == 62) {
     lastMin = 61;
     lv_label_set_text(time_label, "--:--");  // Falls die Uhrzeit nicht abgerufen werden konnte
     lv_label_set_text(date_label, "--.--.----");
+    Serial.println("set clock default");
+    if(WiFi.status()!=WL_CONNECTED){
+      lv_label_set_text(wifi_label,LV_SYMBOL_WARNING);
+      lv_label_set_text(wheater_label,"123C");
+    }
+
+
   }
 }
 

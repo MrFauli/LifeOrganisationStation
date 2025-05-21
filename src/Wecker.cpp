@@ -8,6 +8,7 @@ bool timerOn;
 String timerDauer = "";
 int timerMin;
 int timerSec;
+extern bool uhrGesetzt;
 #include <Arduino.h>
 class singleAlarm{
     public:
@@ -38,19 +39,19 @@ void Wecker::checkAlarms(){
 
 
 void Wecker::makeAlarm(int hour, int minute) {
-    struct tm timeinfo;
-    
+
+    if(uhrGesetzt){
     if(getLocalTime(&timeinfo)){
         if(played==false && playedMin!=timeinfo.tm_min && playedHour!=timeinfo.tm_hour ){
             played == false;
 
             if(timeinfo.tm_min == minute && timeinfo.tm_hour == hour){
                 Serial.println("Alarm");
-                player.playMP3("/Monte-Wecker.mp3");
+                player.playMP3("/Sponge-Bob.mp3");
                 playedMin = minute;
                 playedHour = hour;
                 played == true;
-            }}}
+            }}}}
     }
 
 
@@ -69,19 +70,22 @@ void Wecker::checkTimer(){
     if(timer< millis() && timerOn == true){
         timerOn = false;
         Serial.println("Timer");
-        player.playMP3("/Monte-Wecker.mp3");
+        player.playMP3("/Minion-Wecker.mp3");
         timerDauer = "";
     }
     if(timerOn){
         timerMin =(timer - millis()) / 60000;
         timerSec = ((timer - millis()) % 60000)/1000;
-        String timerSecStr =String(timerSec);
-        if(sizeof(timerSec)==1){
-            timerSecStr = "0" + timerSec;
+        String timerSecStr;
+        if(timerSec < 10){  
+    timerSecStr = "0" + String(timerSec);
+            
         }
-        timerDauer = String(timerMin) + ":" + timerSecStr;
-        Serial.println(timerDauer);
-        Serial.println(timerMin);
-        Serial.println(timerSec);
+        else{
+            timerSecStr = String(timerSec);
+        }
+        timerDauer = String(timerMin) + ":" + timerSecStr;  getLocalTime(&timeinfo);
+
+
     }
 }
